@@ -7,8 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
+	"net/http"
 	"strconv"
+
+	"github.com/tkanos/gonfig"
 
 	//"reflect"
 	"math"
@@ -52,35 +54,44 @@ type civicResponse struct {
 	Officials       []Official             `json:"officials"`
 }
 
+// Configuration ... configuration data
+type Configuration struct {
+	KeyName  string
+	KeyValue string
+}
+
 var googleCivic civicResponse
 
 func main() {
 
+	configuration := Configuration{}
+	err := gonfig.GetConf("./data/config.json", &configuration)
+
 	// resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=37%20ibis%20dr%20akron%20ohio&includeOffices=true&key=" + civicKey)
-	// resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=80204&includeOffices=true&key=" + civicKey)
-	// if err != nil {
-	// 	print(err)
-	// }
+	resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=80204&includeOffices=true&key=" + configuration.KeyValue)
+	if err != nil {
+		print(err)
+	}
 
-	// defer resp.Body.Close()
-	// body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	byteValue, err := ioutil.ReadAll(resp.Body)
 
-	// fmt.Print(string(body))
+	//fmt.Print(string(body))
 	// err = ioutil.WriteFile("denver.json", body, 0644)
 
-	jsonInputFile := "denver.json"
+	// jsonInputFile := "denver.json"
 
 	// Open our jsonFile
-	jsonFile, err := os.Open(jsonInputFile)
+	//jsonFile, err := os.Open(jsonInputFile)
 	// if we os.Open returns an error then handle it
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("Successfully Opened ibis.json")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// fmt.Println("Successfully Opened ibis.json")
 	// defer the closing of our jsonFile so that we can parse it later on
-	defer jsonFile.Close()
+	// defer jsonFile.Close()
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	// byteValue, _ := ioutil.ReadAll(jsonFile)
 
 	json.Unmarshal(byteValue, &googleCivic)
 
