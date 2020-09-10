@@ -1,21 +1,20 @@
 package main
 
-// propublica api - https://api.propublica.org/congress/v1/
-// google civic information api - https://www.googleapis.com/civicinfo/v2
-
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/tkanos/gonfig"
-	//"reflect"
 )
+
+var log = logrus.New()
+var googleCivic civicResponse
 
 // NormalizedInput ... office of a representative
 type NormalizedInput struct {
@@ -66,19 +65,29 @@ type Configuration struct {
 	KeyValue string
 }
 
-var googleCivic civicResponse
+func setupRouter() *gin.Engine {
+	gin.DisableConsoleColor()
+	r := gin.New()
+	return r
+}
 
-func main() {
+func getStatus(c *gin.Context) {
+	msg := map[string]interface{}{"Status": "Ok", "msg": "ready", "version": "v1.0.1"}
+	c.JSON(http.StatusOK, msg)
+}
 
+func localRepresentatives(c *gin.Context) {
+	address, _ := c.GetQuery("address")
 	configuration := Configuration{}
 	err := gonfig.GetConf("./data/config.json", &configuration)
 
 	// read user input of address
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Input Your Address: ")
-	address, _ := reader.ReadString('\n')
-	address = strings.Replace(address, " ", "%20", -1)
-	address = strings.Replace(address, "\n", "", -1)
+	// reader := bufio.NewReader(os.Stdin)
+	// fmt.Println("Input Your Address: ")
+	// address, _ := reader.ReadString('\n')
+	// address = strings.Replace(address, " ", "%20", -1)
+	// address = strings.Replace(address, "\n", "", -1)
+	// address = "80204"
 
 	resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=" + address + "&includeOffices=true&key=" + configuration.KeyValue)
 
@@ -125,11 +134,11 @@ func main() {
 	}
 	// map division tags to division names (to join to office map)
 	for key, value := range googleCivic.Divisions {
-		fmt.Println("key: ", key)
-		fmt.Println("RAW: ", value)
+		// fmt.Println("key: ", key)
+		// fmt.Println("RAW: ", value)
 		for key1, value1 := range value.(map[string]interface{}) {
-			fmt.Println("key1: ", key1)
-			fmt.Println("value1: ", value1)
+			// fmt.Println("key1: ", key1)
+			// fmt.Println("value1: ", value1)
 			if key1 == "name" {
 				divisionName := fmt.Sprintf("%v", value1)
 				divisionMap[key] = divisionName
@@ -138,16 +147,42 @@ func main() {
 	}
 
 	var response []localRepResponse
-	fmt.Println("")
-	fmt.Println("")
+	// fmt.Println("")
+	// fmt.Println("")
 	for i := 0; i < len(googleCivic.Officials); i++ {
 		// fmt.Println(i)
 		tempResponse := localRepResponse{Index: i, Office: officeMap[i], Name: googleCivic.Officials[i].Name, Location: divisionMap[officeDivisionMap[officeMap[i]]]}
 		response = append(response, tempResponse)
-		fmt.Println(strconv.Itoa(i) + " - " + officeMap[i] + " - " + googleCivic.Officials[i].Name + " - " + divisionMap[officeDivisionMap[officeMap[i]]])
+		// fmt.Println(strconv.Itoa(i) + " - " + officeMap[i] + " - " + googleCivic.Officials[i].Name + " - " + divisionMap[officeDivisionMap[officeMap[i]]])
 	}
 
-	rep, _ := json.Marshal(response)
-	fmt.Println(string(rep))
+	msg := map[string]interface{}{"Status": "Ok", "address": address, "representatives": response}
+	// fmt.Println(response)
+	c.JSON(http.StatusOK, msg)
+}
 
+// func getCount(c *gin.Context) {
+// 	playerstatsCache.ItemCount()
+// 	msg := map[string]interface{}{"Status": "Ok", "guids": playerstatsCache.ItemCount()}
+// 	c.JSON(http.StatusOK, msg)
+// }
+
+func main() {
+	file, err := os.OpenFile("logs/app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		log.Out = file
+	} else {
+		log.Info("Failed to log to file, using default stderr")
+	}
+	r := setupRouter()
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"*"}
+	// config.AllowOrigins == []string{"http://google.com", "http://facebook.com"}
+
+	r.Use(cors.New(config))
+	log.Info("Starting Application")
+	r.GET("/ready", getStatus)
+	r.GET("localReps", localRepresentatives)
+
+	r.Run()
 }
