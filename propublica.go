@@ -14,9 +14,7 @@ import (
 	"strings"
 
 	"github.com/tkanos/gonfig"
-
 	//"reflect"
-	"math"
 )
 
 var civicKey = "AIzaSyCGq0GWsj2iDVjr-D201iBOLlk5iRNNqlw"
@@ -108,7 +106,8 @@ func main() {
 	json.Unmarshal(byteValue, &googleCivic)
 
 	officeMap := make(map[int]string) // map for representatives
-	divisionMap := make(map[int]string)
+	officeDivisionMap := make(map[string]string)
+	divisionMap := make(map[string]string)
 
 	// map office names to office indices
 	for i := range googleCivic.Offices {
@@ -117,50 +116,34 @@ func main() {
 			// fmt.Println(strconv.Itoa(googleCivic.Offices[i].OfficialIndices[j]))
 			officeMap[googleCivic.Offices[i].OfficialIndices[j]] = googleCivic.Offices[i].Name
 		}
+		officeDivisionMap[googleCivic.Offices[i].Name] = googleCivic.Offices[i].DivisionID
 	}
 
-	fmt.Println("Starting unstructured return...")
-	divisionName := ""
-	divisionIndex := 0
-	var tempDivisionIndices []int
-	for _, value := range googleCivic.Divisions {
-		//fmt.Println("RAW: ", value)
-		divisionName = ""
-		tempDivisionIndices = nil
+	for key, value := range googleCivic.Divisions {
+		fmt.Println("key: ", key)
+		fmt.Println("RAW: ", value)
 		for key1, value1 := range value.(map[string]interface{}) {
-			//fmt.Println("RAW key1: ", key1)
+			fmt.Println("key1: ", key1)
+			fmt.Println("value1: ", value1)
 			if key1 == "name" {
-				divisionName = fmt.Sprintf("%v", value1)
-				//fmt.Println("v1: ", value1)
-				if len(tempDivisionIndices) > 0 {
-					for _, value2 := range tempDivisionIndices {
-						divisionIndex = value2
-						divisionMap[divisionIndex] = divisionName
-						fmt.Println("*** FROM TEMP Added " + divisionName + " with key: " + strconv.Itoa(divisionIndex) + " to map")
-					}
-					tempDivisionIndices = nil
-				}
-			} else if key1 == "officeIndices" {
-				for _, value2 := range value1.([]interface{}) {
-					divisionIndex = int(math.Round(value2.(float64)))
-					//fmt.Println("v2: ", value2)
-					if divisionName == "" {
-						tempDivisionIndices = append(tempDivisionIndices, divisionIndex)
-						fmt.Println("Added " + strconv.Itoa(divisionIndex) + " temporary index array")
-					} else {
-						divisionMap[divisionIndex] = divisionName
-						fmt.Println("*** Added " + divisionName + " with key: " + strconv.Itoa(divisionIndex) + " to map")
-					}
-				}
-				divisionName = ""
+				divisionName := fmt.Sprintf("%v", value1)
+				divisionMap[key] = divisionName
 			}
 		}
 	}
 
 	fmt.Println("")
 	fmt.Println("")
+	for key, value := range divisionMap {
+		// fmt.Println(i)
+		fmt.Println("Key: " + key + " value: " + value)
+	}
+
+	fmt.Println("")
+	fmt.Println("")
 	for i := 0; i < len(googleCivic.Officials); i++ {
 		// fmt.Println(i)
-		fmt.Println(strconv.Itoa(i) + " - " + officeMap[i] + " - " + googleCivic.Officials[i].Name + " - " + divisionMap[i])
+		fmt.Println(strconv.Itoa(i) + " - " + officeMap[i] + " - " + googleCivic.Officials[i].Name + " - " + divisionMap[officeDivisionMap[officeMap[i]]])
 	}
+
 }
