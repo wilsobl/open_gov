@@ -4,11 +4,14 @@ package main
 // google civic information api - https://www.googleapis.com/civicinfo/v2
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/tkanos/gonfig"
 
@@ -67,8 +70,17 @@ func main() {
 	configuration := Configuration{}
 	err := gonfig.GetConf("./data/config.json", &configuration)
 
+	// read user input of address
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Input Your Address: ")
+	address, _ := reader.ReadString('\n')
+	address = strings.Replace(address, " ", "%20", -1)
+	address = strings.Replace(address, "\n", "", -1)
+
+	resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=" + address + "&includeOffices=true&key=" + configuration.KeyValue)
+
 	// resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=37%20ibis%20dr%20akron%20ohio&includeOffices=true&key=" + civicKey)
-	resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=80204&includeOffices=true&key=" + configuration.KeyValue)
+	// resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=80204&includeOffices=true&key=" + configuration.KeyValue)
 	if err != nil {
 		print(err)
 	}
