@@ -111,7 +111,7 @@ class LoginHome extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      jokes: []
+        reps: []
     };
 
     this.serverRequest = this.serverRequest.bind(this);
@@ -126,9 +126,9 @@ class LoginHome extends React.Component {
   }
 
   serverRequest() {
-    $.get("http://localhost:3000/api/jokes", res => {
+    $.get("http://localhost:3000/api/localreps", res => {
       this.setState({
-        jokes: res
+        reps: res
       });
     });
   }
@@ -138,19 +138,20 @@ class LoginHome extends React.Component {
   }
 
   render() {
+    const userList = this.state.reps.users_rep_list;
     return (
       <div className="container">
         <br />
         <span className="pull-right">
           <a onClick={this.logout}>Log out</a>
         </span>
-        <h2>Jokeish</h2>
+        <h2>Open-Gov</h2>
     <p>Hey user</p>
         <div className="row">
           <div className="container">
-            {this.state.jokes.map(function(joke, i) {
-              return <Joke key={i} joke={joke} />;
-            })}
+            {userList && (userList.map(function(localrep, i) {
+              return <RepName key={i} localrep={localrep} />;
+            }))}
           </div>
         </div>
       </div>
@@ -158,48 +159,22 @@ class LoginHome extends React.Component {
   }
 }
 
-class Joke extends React.Component {
+class RepName extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      liked: "",
-      jokes: []
-    };
-    this.like = this.like.bind(this);
-    this.serverRequest = this.serverRequest.bind(this);
   }
-
-  like() {
-    let joke = this.props.joke;
-    this.serverRequest(joke);
-  }
-  serverRequest(joke) {
-    $.post(
-      "http://localhost:3000/api/jokes/like/" + joke.id,
-      { like: 1 },
-      res => {
-        console.log("res... ", res);
-        this.setState({ liked: "Liked!", jokes: res });
-        this.props.jokes = res;
-      }
-    );
-  }
-
   render() {
+    const localRep = this.props.localrep
+    console.log("repName: ", localRep)
     return (
       <div className="col-xs-4">
         <div className="panel panel-default">
           <div className="panel-heading">
-            #{this.props.joke.id}{" "}
-            <span className="pull-right">{this.state.liked}</span>
+            {localRep.name}{" "}
+            <span className="pull-right"></span>
           </div>
-          <div className="panel-body joke-hld">{this.props.joke.joke}</div>
-          <div className="panel-footer">
-            {this.props.joke.likes} Likes &nbsp;
-            <a onClick={this.like} className="btn btn-default">
-              <span className="glyphicon glyphicon-thumbs-up" />
-            </a>
-          </div>
+          <div className="panel-body joke-hld">Office: {localRep.office}</div>
+          <div className="panel-body joke-hld">Location: {localRep.location}</div>
         </div>
       </div>
     );

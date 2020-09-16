@@ -53,11 +53,12 @@ type civicResponse struct {
 	Officials       []Official             `json:"officials"`
 }
 
+// localRepResponse ... looks at
 type localRepResponse struct {
-	Index    int
-	Office   string
-	Name     string
-	Location string
+	Index    int    `json:"index" binding:"required"`
+	Office   string `json:"office"`
+	Name     string `json:"name" binding:"required"`
+	Location string `json:"location"`
 }
 
 type userRepList struct {
@@ -390,7 +391,7 @@ func main() {
 	api.GET("/jokes", JokeHandler)
 	api.POST("/jokes/like/:jokeID", LikeJoke)
 
-	api.GET("/localreps", authMiddleware(), LocalRepsHandler)
+	api.GET("/localreps", LocalRepsHandler)
 	api.POST("/localreps/add", authMiddleware(), AddLocalRep)
 	api.GET("/localreps/lookup", authMiddleware(), localRepresentatives)
 	r.Run(":3000")
