@@ -11,12 +11,12 @@ TODO:
 - deploy to AWS EC2
 
 
-To set up kafka comsumer/producer:
-$ su <pc account>
-start zookeeper server
-`$ zookeeper-server-start /usr/local/etc/kafka/zookeeper.properties`
-start kafka producer
-`kafka-console-producer --broker-list lohost:9092 --topic test`
-start kafka consumer
-kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning
+To set up kafka comsumer/producer:  
+`$ su <pc account>`  
+start zookeeper server  
+`$ zookeeper-server-start /usr/local/etc/kafka/zookeeper.properties`  
+start kafka producer  
+`$ kafka-console-producer --broker-list lohost:9092 --topic test`  
+start kafka consumer  
+`$ kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning`
 
