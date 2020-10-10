@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"github.com/tkanos/gonfig"
 )
@@ -75,6 +77,13 @@ type Representative struct {
 type userRepList struct {
 	UserGUID string
 	RepIndex []int
+}
+
+//UserRepUpdate is the json response sent to kafka
+type UserRepUpdate struct {
+	UserGUID string
+	RepGUID  string
+	Action   string
 }
 
 // Configuration ... configuration data
@@ -280,6 +289,23 @@ func EditLocalRep(c *gin.Context) {
 	// 	"message": "AddLocalRep handler not implemented yet",
 	// })
 
+	userRepUpdate := UserRepUpdate{
+		UserGUID: userGUID,
+		RepGUID:  repGUID,
+		Action:   editTask,
+	}
+
+	userRepUpdateResponse, _ := json.Marshal(userRepUpdate)
+
+	err := writer.WriteMessages(context.Background(), kafka.Message{
+		Key: []byte(strconv.Itoa(repGUIDInt)),
+		// create an arbitrary message payload for the value
+		Value: []byte(userRepUpdateResponse),
+	})
+	if err != nil {
+		panic("could not write message " + err.Error())
+	}
+
 	msg := map[string]interface{}{"Status": "Ok", "user_guid": userGUID, "users_rep_list": userDB[userGUID]}
 	c.JSON(http.StatusOK, msg)
 }
@@ -437,6 +463,14 @@ func loadZipDivisionDB(filePath string) map[string][]string {
 // 	c.JSON(http.StatusOK, msg)
 // }
 
+const (
+	// topic          = "user-rep-list"
+	topic          = "test"
+	broker1Address = "localhost:9092"
+	broker2Address = "localhost:9094"
+	broker3Address = "localhost:9095"
+)
+
 var (
 	userDB         = make(map[string][]int)
 	jwtMiddleWare  *jwtmiddleware.JWTMiddleware
@@ -445,6 +479,7 @@ var (
 	repMap         map[string]Representative
 	divisionRepMap map[string][]Representative
 	zipDivisionMap map[string][]string
+	writer         *kafka.Writer
 )
 
 func init() {
@@ -458,6 +493,12 @@ func init() {
 	repMap = loadRepDB("./data/officials.csv")
 	divisionRepMap = loadDivisionRepDB("./data/officials.csv")
 	zipDivisionMap = loadZipDivisionDB("./data/zip_divisions_db.csv")
+
+	log.Info("Starting kafka producer...")
+	writer = kafka.NewWriter(kafka.WriterConfig{
+		Brokers: []string{broker1Address},
+		Topic:   topic,
+	})
 }
 
 func main() {
