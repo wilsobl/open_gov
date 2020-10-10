@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"github.com/tkanos/gonfig"
@@ -79,6 +81,11 @@ type userRepList struct {
 	RepIndex []int
 }
 
+type userRepMap struct {
+	UserGUID string
+	RepGUID  string
+}
+
 //UserRepUpdate is the json response sent to kafka
 type UserRepUpdate struct {
 	UserGUID string
@@ -122,7 +129,7 @@ var localRepsDB = []localRepResponse{
 	localRepResponse{0, "President of the United States", "Donald J. Trump", "United States", ""},
 	localRepResponse{1, "Vice President of the United States", "Mike Pence", "United States", ""},
 	localRepResponse{2, "U.S. Senator", "Cory Gardner", "Colorado", ""},
-	localRepResponse{3, "U.S. Senator", "Michael F. Bennet", "Colorado", ""},
+	localRepResponse{3, "U.S. Senator", "Michael F. Bennet", "Colorado", "2dd55a622eb3e8a594b36576fb1bbb"},
 	localRepResponse{4, "U.S. Representative", "Diana DeGette", "Colorado's 1st congressional district", ""},
 	localRepResponse{5, "Governor of Colorado", "Jared Polis", "Colorado", ""},
 	localRepResponse{6, "Lieutenant Governor of Colorado", "Dianne Primavera", "Colorado", ""},
@@ -250,6 +257,7 @@ func localRepLookup(c *gin.Context) {
 // LocalRepsHandler looks up local representatives based on zipcode
 func LocalRepsHandler(c *gin.Context) {
 	//userGUID, _ := c.GetQuery("user_guid")
+	// userGUID := "55ee03f2dcd8c8e46b91cbb2e70d9e"
 	userGUID := "1234"
 	c.Header("Content-Type", "application/json")
 	var tempUserRepList []localRepResponse
@@ -387,6 +395,20 @@ func loadRepDB(filePath string) map[string]Representative {
 		// fmt.Println(OfficialsMap[line[6]])
 	}
 
+	db, err = sql.Open("mysql", "root:testing@tcp(127.0.0.1:3306)/open_gov")
+	defer db.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	err = db.Ping()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	var userDB userRepMap
+	err = db.QueryRow("select * from user_favorite_reps").Scan(&userDB.UserGUID, &userDB.RepGUID)
+	fmt.Println(userDB)
+
 	return RepMap
 }
 
@@ -418,8 +440,8 @@ func loadDivisionRepDB(filePath string) map[string][]Representative {
 			currentDivision = line[3]
 			tempRepList = []Representative{}
 			tempRepList = append(tempRepList, tempRep)
-			fmt.Println(currentDivision)
-			fmt.Println(tempRep)
+			// fmt.Println(currentDivision)
+			// fmt.Println(tempRep)
 		}
 	}
 	return OfficialsMap
@@ -480,6 +502,7 @@ var (
 	divisionRepMap map[string][]Representative
 	zipDivisionMap map[string][]string
 	writer         *kafka.Writer
+	db             *sql.DB
 )
 
 func init() {

@@ -4,11 +4,16 @@ app for connecting people to their government
 
 
 TODO:
+- in init: add mysql queries to pull from representatives and user_favorite_reps tables
+    - switch user_rep map to have it's own loading function and store repGUID has string, not int
+- create a kafka consumer go script that reads in messages and writes to mysql db
 - check for duplicates on userRep edit function
-- set up kafka stream for adding/removing reps
 - set up external data sources (S3?) for users, reps, etc.
 - set up CI/CD pipeline
 - deploy to AWS EC2
+
+DONE:
+- set up kafka stream for adding/removing reps
 
 
 To set up kafka comsumer/producer:  
