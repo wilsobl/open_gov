@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
@@ -254,17 +253,17 @@ func localRepLookup(c *gin.Context) {
 	c.JSON(http.StatusOK, msg)
 }
 
-// LocalRepsHandler looks up local representatives based on zipcode
+// LocalRepsHandler loads user information and is called on website homepage
 func LocalRepsHandler(c *gin.Context) {
 	//userGUID, _ := c.GetQuery("user_guid")
-	// userGUID := "55ee03f2dcd8c8e46b91cbb2e70d9e"
-	userGUID := "1234"
+	userGUID := "55ee03f2dcd8c8e46b91cbb2e70d9e"
+	//userGUID := "1234"
 	c.Header("Content-Type", "application/json")
-	var tempUserRepList []localRepResponse
-	for _, j := range userDB[userGUID] {
+	var tempUserRepList []Representative
+	for _, j := range userReps[userGUID] {
 		fmt.Println("j", j)
-		fmt.Println("Rep: ", localRepsDB[j].Name)
-		tempUserRepList = append(tempUserRepList, localRepsDB[j])
+		fmt.Println("Rep: ", repMap[j].Name)
+		tempUserRepList = append(tempUserRepList, repMap[j])
 	}
 	msg := map[string]interface{}{"Status": "Ok", "user_guid": userGUID, "users_rep_list": tempUserRepList}
 	c.JSON(http.StatusOK, msg)
@@ -277,25 +276,21 @@ func EditLocalRep(c *gin.Context) {
 	editTask, _ := c.GetQuery("editTask")
 	c.Header("Content-Type", "application/json")
 	targetRepIndex := -1
-	repGUIDInt, _ := strconv.Atoi(repGUID)
 	if editTask == "add" {
-		userDB[userGUID] = append(userDB[userGUID], repGUIDInt)
+		userReps[userGUID] = append(userReps[userGUID], repGUID)
 	} else if editTask == "remove" {
-		tempUserRepList := userDB[userGUID]
+		tempUserRepList := userReps[userGUID]
 		for i, value := range tempUserRepList {
-			if value == repGUIDInt {
+			if value == repGUID {
 				targetRepIndex = i
 			}
 		}
 		if targetRepIndex != -1 {
-			userDB[userGUID] = append(tempUserRepList[:targetRepIndex], tempUserRepList[targetRepIndex+1:]...)
+			userReps[userGUID] = append(tempUserRepList[:targetRepIndex], tempUserRepList[targetRepIndex+1:]...)
 		}
 	} else {
 		log.Info("edit Rep: provided invalid option")
 	}
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"message": "AddLocalRep handler not implemented yet",
-	// })
 
 	userRepUpdate := UserRepUpdate{
 		UserGUID: userGUID,
@@ -306,15 +301,14 @@ func EditLocalRep(c *gin.Context) {
 	userRepUpdateResponse, _ := json.Marshal(userRepUpdate)
 
 	err := writer.WriteMessages(context.Background(), kafka.Message{
-		Key: []byte(strconv.Itoa(repGUIDInt)),
-		// create an arbitrary message payload for the value
+		//Key: []byte(repGUID),
 		Value: []byte(userRepUpdateResponse),
 	})
 	if err != nil {
 		panic("could not write message " + err.Error())
 	}
 
-	msg := map[string]interface{}{"Status": "Ok", "user_guid": userGUID, "users_rep_list": userDB[userGUID]}
+	msg := map[string]interface{}{"Status": "Ok", "user_guid": userGUID, "users_rep_list": userReps[userGUID]}
 	c.JSON(http.StatusOK, msg)
 }
 
@@ -405,11 +399,26 @@ func loadRepDB(filePath string) map[string]Representative {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	var userDB userRepMap
-	err = db.QueryRow("select * from user_favorite_reps").Scan(&userDB.UserGUID, &userDB.RepGUID)
-	fmt.Println(userDB)
 
-	return RepMap
+	userRows, err := db.Query("select * from user_favorite_reps")
+	for userRows.Next() {
+		var row userRepMap
+		err = userRows.Scan(&row.UserGUID, &row.RepGUID)
+		userReps[row.UserGUID] = append(userReps[row.UserGUID], row.RepGUID)
+	}
+	fmt.Println(userReps)
+
+	repRows, err := db.Query("select * from representatives")
+	for repRows.Next() {
+		var row Representative
+		err = repRows.Scan(&row.Office, &row.Name, &row.Location, &row.Division, &row.GUID)
+		fmt.Println(row)
+		fmt.Println(row.GUID)
+		repMap[row.GUID] = row
+	}
+	fmt.Println(userReps)
+
+	return repMap
 }
 
 func loadDivisionRepDB(filePath string) map[string][]Representative {
@@ -498,11 +507,12 @@ var (
 	jwtMiddleWare  *jwtmiddleware.JWTMiddleware
 	log            = logrus.New()
 	googleCivic    civicResponse
-	repMap         map[string]Representative
+	repMap         = make(map[string]Representative)
 	divisionRepMap map[string][]Representative
 	zipDivisionMap map[string][]string
 	writer         *kafka.Writer
 	db             *sql.DB
+	userReps       = make(map[string][]string)
 )
 
 func init() {
