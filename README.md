@@ -19,13 +19,13 @@ DONE:
 - in init: add mysql queries to pull from user_favorite_reps, switch repGUID to string
 - set up kafka stream for adding/removing reps
 
-ref for below: https://medium.com/@Ankitthakur/apache-kafka-installation-on-mac-using-homebrew-a367cdefd273
+ref for below: https://medium.com/@Ankitthakur/apache-kafka-installation-on-mac-using-homebrew-a367cdefd273  
 To set up kafka comsumer/producer (run `su` command in all new window):  
 `$ su <pc account>`  
 start zookeeper server  
 `$ zookeeper-server-start /usr/local/etc/kafka/zookeeper.properties`  
-start kafka server 
-`$ kafka-server-start /usr/local/etc/kafka/server.properties`
+start kafka server  
+`$ kafka-server-start /usr/local/etc/kafka/server.properties`  
 start kafka producer  
 `$ kafka-console-producer --broker-list lohost:9092 --topic test`  
 start kafka consumer  
