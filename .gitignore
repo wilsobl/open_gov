@@ -2,3 +2,4 @@ data/*
 keys/*
 logs/*
 *.env
+.DS_Store

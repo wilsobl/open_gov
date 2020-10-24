@@ -389,7 +389,7 @@ func loadRepDB(filePath string) map[string]Representative {
 		// fmt.Println(OfficialsMap[line[6]])
 	}
 
-	db, err = sql.Open("mysql", "root:testing@tcp(127.0.0.1:3306)/open_gov")
+	db, err = sql.Open("mysql", "root:11111111@tcp(127.0.0.1:3306)/open_gov")
 	defer db.Close()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -400,23 +400,23 @@ func loadRepDB(filePath string) map[string]Representative {
 		fmt.Println(err.Error())
 	}
 
-	userRows, err := db.Query("select * from user_favorite_reps")
+	userRows, err := db.Query("select * from open_gov.user_favorite_reps")
 	for userRows.Next() {
 		var row userRepMap
 		err = userRows.Scan(&row.UserGUID, &row.RepGUID)
 		userReps[row.UserGUID] = append(userReps[row.UserGUID], row.RepGUID)
 	}
-	fmt.Println(userReps)
+	//fmt.Println(userReps)
 
-	repRows, err := db.Query("select * from representatives")
+	repRows, err := db.Query("select * from open_gov.representatives")
 	for repRows.Next() {
 		var row Representative
 		err = repRows.Scan(&row.Office, &row.Name, &row.Location, &row.Division, &row.GUID)
-		fmt.Println(row)
-		fmt.Println(row.GUID)
+		//fmt.Println(row)
+		//fmt.Println(row.GUID)
 		repMap[row.GUID] = row
 	}
-	fmt.Println(userReps)
+	//fmt.Println(userReps)
 
 	return repMap
 }
