@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
@@ -94,8 +96,8 @@ type UserRepUpdate struct {
 
 // Configuration ... configuration data
 type Configuration struct {
-	KeyName  string
-	KeyValue string
+	googleCivic string
+	proPublica  string
 }
 
 // Jwks stores a slice of JSON Web Keys
@@ -161,7 +163,7 @@ func googleRepLookup(c *gin.Context) {
 	// address = strings.Replace(address, "\n", "", -1)
 	// address = "80204"
 
-	resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=" + address + "&includeOffices=true&key=" + configuration.KeyValue)
+	resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=" + address + "&includeOffices=true&key=" + configuration.googleCivic)
 
 	// resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=37%20ibis%20dr%20akron%20ohio&includeOffices=true&key=" + civicKey)
 	// resp, err := http.Get("https://civicinfo.googleapis.com/civicinfo/v2/representatives?address=80204&includeOffices=true&key=" + configuration.KeyValue)
@@ -172,7 +174,7 @@ func googleRepLookup(c *gin.Context) {
 	defer resp.Body.Close()
 	byteValue, err := ioutil.ReadAll(resp.Body)
 
-	//fmt.Print(string(body))
+	fmt.Print(string(byteValue))
 	// err = ioutil.WriteFile("denver.json", body, 0644)
 
 	// jsonInputFile := "denver.json"
@@ -225,7 +227,7 @@ func googleRepLookup(c *gin.Context) {
 		// fmt.Println(i)
 		tempResponse := localRepResponse{Index: i, Office: officeMap[i], Name: googleCivic.Officials[i].Name, Location: divisionMap[officeDivisionMap[officeMap[i]]], Division: officeDivisionMap[officeMap[i]]}
 		response = append(response, tempResponse)
-		// fmt.Println(strconv.Itoa(i) + " - " + officeMap[i] + " - " + googleCivic.Officials[i].Name + " - " + divisionMap[officeDivisionMap[officeMap[i]]])
+		fmt.Println(strconv.Itoa(i) + " - " + officeMap[i] + " - " + googleCivic.Officials[i].Name + " - " + divisionMap[officeDivisionMap[officeMap[i]]])
 	}
 
 	msg := map[string]interface{}{"Status": "Ok", "address": address, "representatives": response}
@@ -513,19 +515,20 @@ var (
 	writer         *kafka.Writer
 	db             *sql.DB
 	userReps       = make(map[string][]string)
+	relativePath   = "/Users/gordiehammond/Documents/go/src/github.com/GordieH/open_gov"
 )
 
 func init() {
-	file, err := os.OpenFile("logs/app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(filepath.Join(relativePath, "logs/app.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		log.Out = file
 	} else {
 		log.Info("Failed to log to file, using default stderr")
 	}
 	// Load in-memory maps for reference
-	repMap = loadRepDB("./data/officials.csv")
-	divisionRepMap = loadDivisionRepDB("./data/officials.csv")
-	zipDivisionMap = loadZipDivisionDB("./data/zip_divisions_db.csv")
+	repMap = loadRepDB(filepath.Join(relativePath, "/data/officials.csv"))
+	divisionRepMap = loadDivisionRepDB(filepath.Join(relativePath, "/data/officials.csv"))
+	zipDivisionMap = loadZipDivisionDB(filepath.Join(relativePath, "/data/zip_divisions_db.csv"))
 
 	log.Info("Starting kafka producer...")
 	writer = kafka.NewWriter(kafka.WriterConfig{
@@ -565,7 +568,7 @@ func main() {
 	jwtMiddleWare = jwtMiddleware
 
 	r := gin.Default()
-	r.Use(static.Serve("/", static.LocalFile("./views", true)))
+	r.Use(static.Serve("/", static.LocalFile(filepath.Join(relativePath, "/views"), true)))
 
 	userDB["1234"] = []int{2, 3, 4}
 	userDB["MAGA"] = []int{0, 1}

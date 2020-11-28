@@ -6,8 +6,9 @@ Must start zookeeper/kafka before running app, see below
 
 
 TODO:
-- improve google civic api consumption at a local level (AdminstrativeArea1&2)
 - integrate Propublica's apis
+- Add universal ids to reps (from)
+- improve google civic api consumption at a local level (AdminstrativeArea1&2)
 - create a kafka consumer go script that reads in messages and writes to mysql db
 - check for duplicates on userRep edit function
 - set up external data sources (S3?) for users, reps, etc.
