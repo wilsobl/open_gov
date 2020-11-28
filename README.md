@@ -6,6 +6,7 @@ Must start zookeeper/kafka before running app, see below
 
 
 TODO:
+- edit userReps DB to include propublica ids
 - integrate Propublica's apis
 - move all data sources to AWS
 - Add universal ids to reps (from)

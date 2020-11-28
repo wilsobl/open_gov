@@ -18,6 +18,7 @@ import (
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gocarina/gocsv"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"github.com/tkanos/gonfig"
@@ -70,11 +71,12 @@ type localRepResponse struct {
 
 // Representative ... object of representative
 type Representative struct {
-	GUID     string `json:"guid" binding:"required"`
-	Office   string `json:"office"`
-	Name     string `json:"name" binding:"required"`
-	Location string `json:"location"`
-	Division string `json:"division"`
+	GUID     string `json:"guid" binding:"required" csv:"id"`
+	Office   string `json:"office" csv:"title"`
+	Name     string `json:"name" binding:"required" csv:"first_name"`
+	LastName string `csv:"last_name"`
+	Location string `json:"location" csv:"state"`
+	Division string `json:"division" csv:"ocd_id"`
 }
 
 type userRepList struct {
@@ -371,27 +373,9 @@ func getPemCert(token *jwt.Token) (string, error) {
 // 	filePath := "data/" + bucket + key
 // }
 
-func loadRepDB(filePath string) map[string]Representative {
-	f, err := os.Open(filePath)
-	if err != nil {
-		logrus.WithField("path", filePath).WithError(err).Error("Error while loading file")
-	}
-	defer f.Close()
-	lines, err := csv.NewReader(f).ReadAll()
-	// counter := 0
-	// OfficialsMap := []([]string){}
-	RepMap := map[string]Representative{}
-	for _, line := range lines {
-		tempGUID := line[4]
-		tempOffice := line[0]
-		tempName := line[1]
-		tempLocation := line[2]
-		tempDivision := line[3]
-		RepMap[tempGUID] = Representative{tempGUID, tempOffice, tempName, tempLocation, tempDivision}
-		// fmt.Println(OfficialsMap[line[6]])
-	}
+func loadRepDB() map[string]Representative {
 
-	db, err = sql.Open("mysql", "root:11111111@tcp(127.0.0.1:3306)/open_gov")
+	db, err := sql.Open("mysql", "root:11111111@tcp(127.0.0.1:3306)/open_gov")
 	defer db.Close()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -420,6 +404,34 @@ func loadRepDB(filePath string) map[string]Representative {
 	}
 	//fmt.Println(userReps)
 
+	reps := []*Representative{}
+
+	in, err := os.Open(filepath.Join(relativePath, "/data/house_members.csv"))
+	if err != nil {
+		panic(err)
+	}
+	defer in.Close()
+	if err := gocsv.UnmarshalFile(in, &reps); err != nil {
+		panic(err)
+	}
+	for _, rep := range reps {
+		// fmt.Println(rep.LastName)
+		repMap[rep.GUID] = addRepToMap(rep)
+	}
+
+	in, err = os.Open(filepath.Join(relativePath, "/data/senate_members.csv"))
+	if err != nil {
+		panic(err)
+	}
+	defer in.Close()
+	if err := gocsv.UnmarshalFile(in, &reps); err != nil {
+		panic(err)
+	}
+	for _, rep := range reps {
+		// fmt.Println(rep.LastName)
+		repMap[rep.GUID] = addRepToMap(rep)
+	}
+
 	return repMap
 }
 
@@ -442,7 +454,7 @@ func loadDivisionRepDB(filePath string) map[string][]Representative {
 		tempName := line[1]
 		tempLocation := line[2]
 		tempDivision := line[3]
-		tempRep := Representative{tempGUID, tempOffice, tempName, tempLocation, tempDivision}
+		tempRep := Representative{tempGUID, tempOffice, tempName, tempName, tempLocation, tempDivision}
 
 		if currentDivision == line[3] {
 			tempRepList = append(tempRepList, tempRep)
@@ -480,6 +492,10 @@ func loadZipDivisionDB(filePath string) map[string][]string {
 		}
 	}
 	return ZipMap
+}
+
+func addRepToMap(rep *Representative) Representative {
+	return Representative{rep.GUID, rep.Office, rep.Name, rep.LastName, rep.Location, rep.Division}
 }
 
 // func MapLocalRepsHandler(c *gin.Context) {
@@ -526,7 +542,8 @@ func init() {
 		log.Info("Failed to log to file, using default stderr")
 	}
 	// Load in-memory maps for reference
-	repMap = loadRepDB(filepath.Join(relativePath, "/data/officials.csv"))
+	repMap = loadRepDB()
+	println(repMap["D000197"].LastName)
 	divisionRepMap = loadDivisionRepDB(filepath.Join(relativePath, "/data/officials.csv"))
 	zipDivisionMap = loadZipDivisionDB(filepath.Join(relativePath, "/data/zip_divisions_db.csv"))
 

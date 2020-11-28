@@ -171,7 +171,7 @@ class RepName extends React.Component {
       <div className="col-xs-4">
         <div className="panel panel-default">
           <div className="panel-heading">
-            {localRep.name}{" "}
+          {localRep.name}{" "}{localRep.LastName}{" "}
             <span className="pull-right"></span>
           </div>
           <div className="panel-body joke-hld">Office: {localRep.office}</div>
