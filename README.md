@@ -34,7 +34,14 @@ Install instructions
     `cask install adoptopenjdk8`  
     - Then: https://medium.com/@Ankitthakur/apache-kafka-installation-on-mac-using-homebrew-a367cdefd273  
 
-
+- Install Kafka/Zookeeper (for Windows):
+    - Refer to article for more information https://towardsdatascience.com/running-zookeeper-kafka-on-windows-10-14fc70dcc771
+    - To download Zookeeper from Oracle, must make account with Oracle https://www.oracle.com/index.html
+    - Alternatively- May download Chocolatey, https://chocolatey.org/install, and install SDK from powershell
+     - To download Kafka- https://kafka.apache.org/downloads. Select the Scala tgz file under binaries and download. Extract to C drive. *Note May have to extract twice for bin        and config folders
+     - Other helpful resources
+            -https://www.geeksforgeeks.org/how-to-install-and-run-apache-kafka-on-windows/ 
+            -https://www.learningjournal.guru/article/kafka/installing-kafka-on-windows/
 ref for below: https://medium.com/@Ankitthakur/apache-kafka-installation-on-mac-using-homebrew-a367cdefd273  
 To set up kafka comsumer/producer:  
 `$ su <pc account>` (if needed)  
